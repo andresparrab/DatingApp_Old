@@ -13,15 +13,17 @@ namespace API.Controllers
     public class AccountController : BaseApiController
     {
         private readonly DataContext _context;
+        private readonly ITokenService _tokenService;
         public AccountController(DataContext context, ITokenService tokenService)
         {
+            _tokenService = tokenService;
             _context = context;
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<AppUser>> Register(RegisterDto registerDto)
+        public async Task<ActionResult<UserDto>> Register(RegisterDto registerDto)
         {
-            if(await UserExists(registerDto.UserName))return BadRequest($"Username: {registerDto.UserName} is taken");
+            if (await UserExists(registerDto.UserName)) return BadRequest($"Username: {registerDto.UserName} is taken");
 
             using var hmac = new HMACSHA512();
             var user = new AppUser
@@ -33,25 +35,29 @@ namespace API.Controllers
 
             // Add user for tracking in the database but not save it yet. the same way of commit before push
             _context.Users.Add(user);
-            //Save it for real in the database
+            //Save it for real in the database..
             await _context.SaveChangesAsync();
-            return user;
+            return new UserDto
+            {
+                UserName = user.UserName,
+                Token = _tokenService.CreateToken(user)
+            };
         }
 
         //Checks if the user exits in the Database.
-        private async Task<bool> UserExists (string UserName)
+        private async Task<bool> UserExists(string UserName)
         {
             return await _context.Users.AnyAsync(dbName => dbName.UserName == UserName.ToLower());
         }
 
         [HttpPost("Login")]
-        public async Task<ActionResult<AppUser>>Login(LoginDto loginDto)
+        public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
             // Get the single user that match the login from the database
-            var user= await _context.Users
+            var user = await _context.Users
                 .SingleOrDefaultAsync(x => x.UserName == loginDto.UserName);
             //If not user found in the database return Unauthorized error
-            if (user ==null) return Unauthorized("Invalid username");
+            if (user == null) return Unauthorized("Invalid username");
             // Initialize a new instans for the hash with the encryption key
             using var hmac = new HMACSHA512(user.PasswordSalt);
             // hash the login Password for comparation to the on in the db
@@ -59,10 +65,14 @@ namespace API.Controllers
             // Compare the password byte by byte
             for (int i = 0; i < computedHash.Length; i++)
             {
-                if(computedHash[i] != user.PasswordHash[i])
+                if (computedHash[i] != user.PasswordHash[i])
                     return Unauthorized("Invalid Password");
             }
-            return user;
+            return new UserDto
+            {
+                UserName = user.UserName,
+                Token = _tokenService.CreateToken(user)
+            };
         }
     }
 }
