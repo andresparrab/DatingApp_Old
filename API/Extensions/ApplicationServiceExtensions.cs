@@ -11,6 +11,7 @@ namespace API.Extensions
     // before we use it
     public static class ApplicationServiceExtensions
     {
+                //                                   You write "this" to extend the type of IserviceCollection
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
         {
             services.AddScoped<ITokenService, Services.TokenService>();

@@ -11,6 +11,7 @@ namespace API.Extensions
     // before we use it
     public static class IdentityServiceExtensions
     {
+        //                                        You write "this" to extend the type of IserviceCollection
         public static IServiceCollection AddIdentityServices(this IServiceCollection services, IConfiguration config)
         {
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
