@@ -15,6 +15,7 @@ currentUser$ = this.currentUserSource.asObservable();
   constructor(private http: HttpClient) { }
 
   login(model: any){
+    // In the course they dont typecast the http return answer/response before pipe it
     return this.http.post<User>(this.baseUrl + 'account/login', model).pipe(
       map((response: User) =>{
         const user = response;
